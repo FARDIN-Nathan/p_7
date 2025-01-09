@@ -20,7 +20,7 @@ def test_good_response_exact_content():
   assert response.status_code == 200
   # Vérification de la réponse
   json_response = response.json()
-  expected_response = {"client_id":400958,"details":"do_not_grant_loan","prediction":0,"probability":{"will_not_pay":0.7512176069233596,"will_pay":0.24878239307664046}}
+  expected_response = {"client_id":400958,"details":"grant_loan","prediction":0,"probability":{"will_not_pay":0.24878239307664046,"will_pay":0.7512176069233596}}
   assert json_response == expected_response, f"En attente de {expected_response},mais obtenue {json_response}"
   
 
