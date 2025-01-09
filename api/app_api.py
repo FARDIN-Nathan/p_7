@@ -5,10 +5,10 @@ from flask import Flask, jsonify
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "1"
 
-with open("/home/6equal/model_lgbm.pkl", 'rb') as file:
+with open("/home/6equal/api/model_lgbm.pkl", 'rb') as file:
     model = pickle.load(file)
 
-data_api=pd.read_csv("/home/6equal/api_test_pe.csv")
+data_api=pd.read_csv("/home/6equal/api/api_test_pe.csv")
 # Initialiser Flask
 app = Flask(__name__)
 
@@ -28,9 +28,9 @@ def predict(client_id):
     # Prédiction
     prediction = model.predict(features)[0]
     probability = model.predict_proba(features)[0].tolist()
-    if int(prediction)==1:
+    if int(prediction)==0:
         details="grant_loan"
-    elif int(prediction==0):
+    elif int(prediction==1):
         details="do_not_grant_loan"
 
     # Construction de la réponse
@@ -39,8 +39,8 @@ def predict(client_id):
         "prediction": int(prediction),
         "details": details,
         "probability": {
-            "will_not_pay": probability[0],
-            "will_pay": probability[1]
+            "will_not_pay": probability[1],
+            "will_pay": probability[0]
         }
     }
 
