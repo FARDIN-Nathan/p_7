@@ -60,7 +60,7 @@ jobs:
           API_BASE_URL="https://www.pythonanywhere.com/api/v0/user/$USERNAME"
 
           echo "Installing dependencies from requirements.txt"
-          http POST $API_BASE_URL/consoles/ \
+          http --ignore-stdin POST $API_BASE_URL/consoles/ \
             Authorization:"Token $API_TOKEN" \
             command="pip install -r /home/$USERNAME/api/requirements.txt" \
             start_console=true
