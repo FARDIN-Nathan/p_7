@@ -1,0 +1,88 @@
+name: Deploy to PythonAnywhere
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+
+    steps:
+      # Clonage du dépôt
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Configuration de Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.0
+
+      # Upload des fichiers via API
+      - name: Upload files to PythonAnywhere
+        env:
+          USERNAME: ${{ secrets.PYTHONANYWHERE_USERNAME }}
+          API_TOKEN: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
+        run: |
+          # Installation de HTTPie
+          pip install httpie
+
+          # URL de l'API PythonAnywhere
+          API_BASE_URL="https://www.pythonanywhere.com/api/v0/user/$USERNAME"
+
+          # Parcourir tous les fichiers dans ./api
+          for file in $(find ./api -type f); do
+            # Construire le chemin cible
+            TARGET_PATH=$(echo $file | sed "s|./api/|/home/$USERNAME/api/|")
+            DIRECTORY=$(dirname $TARGET_PATH)
+
+            # Création du répertoire cible si besoin
+            echo "Creating directory $DIRECTORY"
+            http POST $API_BASE_URL/files/path$DIRECTORY/ \
+              Authorization:"Token $API_TOKEN" \
+              mkdir=true || echo "Directory already exists: $DIRECTORY"
+
+            # Upload du fichier
+            echo "Uploading $file to $TARGET_PATH"
+            http --ignore-stdin --form POST $API_BASE_URL/files/path$TARGET_PATH \
+              Authorization:"Token $API_TOKEN" \
+              content@$file
+          done
+
+      # Installation des dépendances depuis requirements.txt
+      - name: Install dependencies on PythonAnywhere
+        env:
+          USERNAME: ${{ secrets.PYTHONANYWHERE_USERNAME }}
+          API_TOKEN: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
+        run: |
+          API_BASE_URL="https://www.pythonanywhere.com/api/v0/user/$USERNAME"
+
+          echo "Installing dependencies from requirements.txt"
+          http POST $API_BASE_URL/consoles/ \
+            Authorization:"Token $API_TOKEN" \
+            command="pip install -r /home/$USERNAME/api/requirements.txt" \
+            start_console=true
+
+      # Redémarrage de l'application PythonAnywhere
+      - name: Reload PythonAnywhere Web App
+        env:
+          USERNAME: ${{ secrets.PYTHONANYWHERE_USERNAME }}
+          API_TOKEN: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
+        run: |
+          API_BASE_URL="https://www.pythonanywhere.com/api/v0/user/$USERNAME"
+
+          # Recharger l'application web
+          echo "Reloading the application"
+          http POST $API_BASE_URL/webapps/${USERNAME}.pythonanywhere.com/reload/ \
+            Authorization:"Token $API_TOKEN"
+
+      # Exécution des tests unitaires
+      - name: Run API Unit Tests
+        run: |
+          # Installation des dépendances nécessaires
+          pip install pytest requests
+
+          # Lancement des tests unitaires avec pytest
+          pytest --disable-warnings -v
